@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advanced Poker Assistant</title>
+  <style>
+    body { background: #003300; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
+    .container { max-width: 800px; margin: auto; }
+    h1 { text-align: center; color: #a3ffba; text-shadow: 1px 1px 3px #000; }
+    h2 { color: #a3ffba; margin-top: 0; }
+    .section { background: #014d01; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+    label, select, input, button { display: block; width: 100%; margin-top: 10px; font-size: 1rem; padding: 8px; box-sizing: border-box; }
+    select, input { background: #026602; color: white; border: 1px solid #32cd32; border-radius: 4px; }
+    button { background: #32cd32; border: none; border-radius: 5px; padding: 10px; cursor: pointer; }
+    button:hover { background: #28a428; }
+    .hidden { display: none; }
+    .advice { margin-top: 10px; background: #026602; padding: 10px; border-radius: 5px; }
+    .card-select { margin-bottom: 10px; }
+    .cards-container { display: flex; gap: 10px; flex-wrap: wrap; }
+    .card-item { flex: 1; min-width: 80px; }
+    .card-item select { width: 100%; }
+    .advice-title { font-weight: bold; margin-top: 10px; }
+    .hand-strength { font-weight: bold; color: #ffcc00; }
+    .win-percentage { font-weight: bold; color: #ff9900; }
+    option:disabled { color: #666; }
+    .tab-container { display: flex; margin-bottom: 15px; }
+    .tab { background: #014d01; padding: 10px 20px; border-radius: 5px 5px 0 0; margin-right: 5px; cursor: pointer; }
+    .tab.active { background: #32cd32; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .hand-details { margin-top: 10px; border-top: 1px solid #32cd32; padding-top: 10px; }
+    .hand-type-icon { font-size: 1.2em; margin-right: 5px; }
+    .advice-content { line-height: 1.5; }
+    .stats-section { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+    .stat-box { 
+      background-color: #026602; 
+      border-radius: 5px; 
+      padding: 10px; 
+      flex: 1; 
+      min-width: 120px;
+      text-align: center; 
+    }
+    .stat-value { 
+      font-size: 1.5em; 
+      font-weight: bold; 
+      color: #ffcc00; 
+      display: block;
+    }
+    .stat-label { 
+      font-size: 0.9em; 
+      color: #a3ffba; 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Advanced Poker Assistant</h1>
+    
+    <!-- Game Info Section -->
+    <div class="section" id="gameInfoSection">
+      <h2>Game Information</h2>
+      <div class="form-row">
+        <label for="numPlayers">Number of Players</label>
+        <select id="numPlayers"></select>
+      </div>
+      <div class="form-row">
+        <label for="position">Your Position</label>
+        <select id="position">
+          <option value="utg">Under the Gun</option>
+          <option value="utg1">Under the Gun +1</option>
+          <option value="mp">Middle Position</option>
+          <option value="hj">Hijack</option>
+          <option value="co">Cutoff</option>
+          <option value="btn">Button</option>
+          <option value="sb">Small Blind</option>
+          <option value="bb">Big Blind</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="sb">Small Blind</label>
+        <input type="number" id="sb" value="10"/>
+      </div>
+      <div class="form-row">
+        <label for="bb">Big Blind</label>
+        <input type="number" id="bb" value="20"/>
+      </div>
+    </div>
+
+    <!-- Hole Cards -->
+    <div class="section" id="holeSection">
+      <h2>Hole Cards</h2>
+      <div class="cards-container">
+        <div class="card-item">
+          <label for="hole1">Card 1</label>
+          <select id="hole1" class="card-select"></select>
+        </div>
+        <div class="card-item">
+          <label for="hole2">Card 2</label>
+          <select id="hole2" class="card-select"></select>
+        </div>
+      </div>
+      <div class="stats-section" id="preStatsSection">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      <button id="preflopBtn" onclick="advisePreflop()">Get Pre-Flop Advice</button>
+      <div id="advicePre" class="advice"></div>
+    </div>
+
+    <!-- Flop -->
+    <div class="section hidden" id="flopSection">
+      <h2>Flop</h2>
+      <div class="cards-container">
+        <div class="card-item">
+          <label for="flop1">Card 1</label>
+          <select id="flop1" class="card-select"></select>
+        </div>
+        <div class="card-item">
+          <label for="flop2">Card 2</label>
+          <select id="flop2" class="card-select"></select>
+        </div>
+        <div class="card-item">
+          <label for="flop3">Card 3</label>
+          <select id="flop3" class="card-select"></select>
+        </div>
+      </div>
+      <div class="stats-section" id="flopStatsSection">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      <button id="flopBtn" onclick="adviseFlop()">Get Flop Advice</button>
+      <div id="adviceFlop" class="advice"></div>
+      <div id="handDetailsFlop" class="hand-details hidden"></div>
+    </div>
+
+    <!-- Turn -->
+    <div class="section hidden" id="turnSection">
+      <h2>Turn</h2>
+      <div class="cards-container">
+        <div class="card-item">
+          <label for="turn">Turn Card</label>
+          <select id="turn" class="card-select"></select>
+        </div>
+      </div>
+      <div class="stats-section" id="turnStatsSection">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      <button id="turnBtn" onclick="adviseTurn()">Get Turn Advice</button>
+      <div id="adviceTurn" class="advice"></div>
+      <div id="handDetailsTurn" class="hand-details hidden"></div>
+    </div>
+
+    <!-- River -->
+    <div class="section hidden" id="riverSection">
+      <h2>River</h2>
+      <div class="cards-container">
+        <div class="card-item">
+          <label for="river">River Card</label>
+          <select id="river" class="card-select"></select>
+        </div>
+      </div>
+      <div class="stats-section" id="riverStatsSection">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      <button id="riverBtn" onclick="adviseRiver()">Get River Advice</button>
+      <div id="adviceRiver" class="advice"></div>
+      <div id="handDetailsRiver" class="hand-details hidden"></div>
+    </div>
+    
+    <!-- Reset Button -->
+    <button id="resetBtn" onclick="resetGame()">Reset Game</button>
+  </div>
+
+  <script>
+    // Update the set of used cards and disable in other selectors
+    function updateSelectedCards() {
+      // Clear the set and rebuild it
+      usedCards.clear();
+      
+      // Get currently selected cards
+      cardSelectors.forEach(id => {
+        const select = document.getElementById(id);
+        const value = select.value;
+        if (value) {
+          usedCards.add(value);
+        }
+      });
+      
+      // Update all selectors to disable used cards
+      cardSelectors.forEach(id => {
+        const select = document.getElementById(id);
+        const currentValue = select.value;
+        
+        // Update options
+        Array.from(select.options).forEach(option => {
+          if (option.value && option.value !== currentValue) {
+            option.disabled = usedCards.has(option.value);
+          }
+        });
+      });
+      
+      // Update stats sections when cards change
+      updateAllStats();
+    }
+    
+    // Update statistics for all visible sections
+    function updateAllStats() {
+      updatePreFlopStats();
+      
+      if (!document.getElementById('flopSection').classList.contains('hidden')) {
+        updateFlopStats();
+      }
+      
+      if (!document.getElementById('turnSection').classList.contains('hidden')) {
+        updateTurnStats();
+      }
+      
+      if (!document.getElementById('riverSection').classList.contains('hidden')) {
+        updateRiverStats();
+      }
+    }
+    
+    // Update pre-flop statistics
+    function updatePreFlopStats() {
+      const hole = getSelectedCards().slice(0, 2);
+      if (hole.length < 2) {
+        document.getElementById('preStatsSection').innerHTML = '';
+        return;
+      }
+      
+      // Calculate win percentage for pre-flop
+      const winPercentage = calculateWinPercentage(hole);
+      
+      document.getElementById('preStatsSection').innerHTML = `
+        <div class="stat-box">
+          <span class="stat-value">${Math.round(winPercentage)}%</span>
+          <span class="stat-label">Starting Hand Strength</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value">${getPreFlopHandRank(hole)}</span>
+          <span class="stat-label">Hand Rank</span>
+        </div>
+      `;
+    }
+    
+    // Get pre-flop hand rank (e.g., "AA", "KQs")
+    function getPreFlopHandRank(cards) {
+      if (cards.length < 2) return "";
+      
+      // Sort cards by rank (high to low)
+      cards.sort((a, b) => b.rank - a.rank);
+      
+      const highCard = getRankSymbol(cards[0].rank);
+      const lowCard = getRankSymbol(cards[1].rank);
+      const isPair = cards[0].rank === cards[1].rank;
+      const isSuited = cards[0].suit === cards[1].suit;
+      
+      if (isPair) {
+        return `${highCard}${highCard}`;
+      } else {
+        return `${highCard}${lowCard}${isSuited ? 's' : 'o'}`;
+      }
+    }
+    
+    // Get rank symbol (2-A)
+    function getRankSymbol(rank) {
+      if (rank === 14) return 'A';
+      if (rank === 13) return 'K';
+      if (rank === 12) return 'Q';
+      if (rank === 11) return 'J';
+      if (rank === 10) return 'T';
+      return rank.toString();
+    }
+    
+    // Update flop statistics
+    function updateFlopStats() {
+      const cards = getSelectedCards().slice(0, 5);
+      if (cards.length < 5) {
+        document.getElementById('flopStatsSection').innerHTML = '';
+        return;
+      }
+      
+      const handEval = evaluateHand(cards);
+      const winPercentage = calculateWinPercentage(cards);
+      
+      document.getElementById('flopStatsSection').innerHTML = `
+        <div class="stat-box">
+          <span class="stat-value">${handEval.type}</span>
+          <span class="stat-label">Hand Type</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value">${Math.round(winPercentage)}%</span>
+          <span class="stat-label">Winning Chance</span>
+        </div>
+      `;
+    }
+    
+    // Update turn statistics
+    function updateTurnStats() {
+      const cards = getSelectedCards().slice(0, 6);
+      if (cards.length < 6) {
+        document.getElementById('turnStatsSection').innerHTML = '';
+        return;
+      }
+      
+      const handEval = evaluateHand(cards);
+      const winPercentage = calculateWinPercentage(cards);
+      
+      document.getElementById('turnStatsSection').innerHTML = `
+        <div class="stat-box">
+          <span class="stat-value">${handEval.type}</span>
+          <span class="stat-label">Hand Type</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value">${Math.round(winPercentage)}%</span>
+          <span class="stat-label">Winning Chance</span>
+        </div>
+      `;
+    }
+    
+    // Update river statistics
+    function updateRiverStats() {
+      const cards = getSelectedCards();
+      if (cards.length < 7) {
+        document.getElementById('riverStatsSection').innerHTML = '';
+        return;
+      }
+      
+      const handEval = evaluateHand(cards);
+      const winPercentage = calculateWinPercentage(cards);
+      
+      document.getElementById('riverStatsSection').innerHTML = `
+        <div class="stat-box">
+          <span class="stat-value">${handEval.type}</span>
+          <span class="stat-label">Hand Type</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value">${Math.round(winPercentage)}%</span>
+          <span class="stat-label">Winning Chance</span>
+        </div>
+      `;
+    }
+
+    // Enhanced Hand Evaluation Functions
+
+    // Hand rankings from highest to lowest:
+    // 9: Straight Flush
+    // 8: Four of a Kind
+    // 7: Full House
+    // 6: Flush
+    // 5: Straight
+    // 4: Three of a Kind
+    // 3: Two Pair
+    // 2: One Pair
+    // 1: High Card
+
+    // Get card info from value
+    function parseCard(cardValue) {
+      if (!cardValue) return null;
+      const parts = cardValue.split('-');
+      return {
+        rank: parseInt(parts[0]),
+        suit: parts[1]
+      };
+    }
+
+    // Convert selected cards to usable format
+    function getSelectedCards() {
+      return cardSelectors
+        .map(id => {
+          const value = document.getElementById(id).value;
+          return value ? parseCard(value) : null;
+        })
+        .filter(card => card !== null);
+    }
+
+    // Evaluate hand strength with complete ranking and kickers
+    function evaluateHand(cards) {
+      if (!cards || cards.length === 0) return { 
+        type: 'Nothing', 
+        rank: 0, 
+        description: 'No cards selected',
+        details: [] 
+      };
+      
+      if (cards.length < 5) {
+        return { 
+          type: 'Incomplete', 
+          rank: 0, 
+          description: 'Not enough cards to evaluate a complete hand',
+          details: [] 
+        };
+      }
+      
+      // Get all 5-card combinations from player's cards
+      const allCombinations = getAllCombinations(cards, 5);
+      
+      // Evaluate each combination and find the best one
+      let bestHand = { rank: 0, details: [] };
+      
+      for (const combo of allCombinations) {
+        const evaluation = evaluateSingleHand(combo);
+        if (evaluation.rank > bestHand.rank || 
+            (evaluation.rank === bestHand.rank && compareKickers(evaluation.details, bestHand.details) > 0)) {
+          bestHand = evaluation;
+        }
+      }
+      
+      return bestHand;
+    }
+
+    // Generate all combinations of size k from array arr
+    function getAllCombinations(arr, k) {
+      const result = [];
+      
+      function backtrack(start, current) {
+        if (current.length === k) {
+          result.push([...current]);
+          return;
+        }
+        
+        for (let i = start; i < arr.length; i++) {
+          current.push(arr[i]);
+          backtrack(i + 1, current);
+          current.pop();
+        }
+      }
+      
+      backtrack(0, []);
+      return result;
+    }
+
+    // Evaluate a single 5-card hand
+    function evaluateSingleHand(cards) {
+      // Check for straight flush
+      const straightFlush = checkStraightFlush(cards);
+      if (straightFlush.found) {
+        return {
+          type: straightFlush.isRoyal ? 'Royal Flush' : 'Straight Flush',
+          rank: 9,
+          description: straightFlush.isRoyal ? 
+            'A, K, Q, J, 10 of the same suit' : 
+            'Five sequential cards of the same suit',
+          details: straightFlush.details
+        };
+      }
+      
+      // Count ranks for pairs, three of a kind, etc.
+      const rankCounts = {};
+      cards.forEach(card => {
+        rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
+      });
+      
+      // Sort ranks by count (highest first), then by rank (highest first)
+      const ranksWithCounts = Object.entries(rankCounts)
+        .map(([rank, count]) => ({ rank: parseInt(rank), count }))
+        .sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return b.rank - a.rank;
+        });
+      
+      // Check for four of a kind
+      if (ranksWithCounts[0].count === 4) {
+        return {
+          type: 'Four of a Kind',
+          rank: 8,
+          description: 'Four cards of the same rank',
+          details: [
+            { group: 'quad', rank: ranksWithCounts[0].rank },
+            { group: 'kicker', rank: ranksWithCounts[1].rank }
+          ]
+        };
+      }
+      
+      // Check for full house
+      if (ranksWithCounts[0].count === 3 && ranksWithCounts[1].count >= 2) {
+        return {
+          type: 'Full House',
+          rank: 7,
+          description: 'Three of a kind plus a pair',
+          details: [
+            { group: 'triplet', rank: ranksWithCounts[0].rank },
+            { group: 'pair', rank: ranksWithCounts[1].rank }
+          ]
+        };
+      }
+      
+      // Check for flush
+      const flush = checkFlush(cards);
+      if (flush.found) {
+        return {
+          type: 'Flush',
+          rank: 6,
+          description: 'Five cards of the same suit',
+          details: flush.details
+        };
+      }
+      
+      // Check for straight
+      const straight = checkStraight(cards);
+      if (straight.found) {
+        return {
+          type: 'Straight',
+          rank: 5,
+          description: 'Five cards in sequential rank',
+          details: straight.details
+        };
+      }
+      
+      // Check for three of a kind
+      if (ranksWithCounts[0].count === 3) {
+        return {
+          type: 'Three of a Kind',
+          rank: 4,
+          description: 'Three cards of the same rank',
+          details: [
+            { group: 'triplet', rank: ranksWithCounts[0].rank },
+            { group: 'kicker1', rank: ranksWithCounts[1].rank },
+            { group: 'kicker2', rank: ranksWithCounts[2].rank }
+          ]
+        };
+      }
+      
+      // Check for two pair
+      if (ranksWithCounts[0].count === 2 && ranksWithCounts[1].count === 2) {
+        return {
+          type: 'Two Pair',
+          rank: 3,
+          description: 'Two different pairs',
+          details: [
+            { group: 'highPair', rank: ranksWithCounts[0].rank },
+            { group: 'lowPair', rank: ranksWithCounts[1].rank },
+            { group: 'kicker', rank: ranksWithCounts[2].rank }
+          ]
+        };
+      }
+      
+      // Check for one pair
+      if (ranksWithCounts[0].count === 2) {
+        return {
+          type: 'One Pair',
+          rank: 2,
+          description: 'A pair of cards of the same rank',
+          details: [
+            { group: 'pair', rank: ranksWithCounts[0].rank },
+            { group: 'kicker1', rank: ranksWithCounts[1].rank },
+            { group: 'kicker2', rank: ranksWithCounts[2].rank },
+            { group: 'kicker3', rank: ranksWithCounts[3].rank }
+          ]
+        };
+      }
+      
+      // High card
+      return {
+        type: 'High Card',
+        rank: 1,
+        description: 'No matching cards, evaluated by highest card',
+        details: ranksWithCounts.map((r, index) => ({ 
+          group: `kicker${index+1}`, 
+          rank: r.rank 
+        }))
+      };
+    }
+
+    // Check for a straight flush
+    function checkStraightFlush(cards) {
+      // Group cards by suit
+      const suits = {};
+      cards.forEach(card => {
+        if (!suits[card.suit]) suits[card.suit] = [];
+        suits[card.suit].push(card);
+      });
+      
+      // Check each suit group that has at least 5 cards
+      for (const suit in suits) {
+        if (suits[suit].length >= 5) {
+          const straight = checkStraight(suits[suit]);
+          if (straight.found) {
+            // Check if it's a royal flush (A-K-Q-J-10)
+            const isRoyal = straight.details[0].rank === 14;
+            return {
+              found: true,
+              isRoyal,
+              details: straight.details
+            };
+          }
+        }
+      }
+      
+      return { found: false };
+    }
+
+    // Check for a flush
+    function checkFlush(cards) {
+      // Count suits
+      const suitCounts = {};
+      cards.forEach(card => {
+        suitCounts[card.suit] = (suitCounts[card.suit] || 0) + 1;
+      });
+      
+      // Find suit with at least 5 cards
+      for (const suit in suitCounts) {
+        if (suitCounts[suit] >= 5) {
+          // Filter cards by suit and sort by rank (high to low)
+          const flushCards = cards
+            .filter(card => card.suit === suit)
+            .sort((a, b) => b.rank - a.rank);
+          
+          // Take the top 5 cards as kickers
+          const details = flushCards.slice(0, 5).map((card, idx) => ({ 
+            group: `kicker${idx+1}`, 
+            rank: card.rank 
+          }));
+          
+          return { found: true, details };
+        }
+      }
+      
+      return { found: false };
+    }
+
+    // Check for a straight
+    function checkStraight(cards) {
+      // Get unique ranks, sorted in descending order
+      const uniqueRanks = [...new Set(cards.map(c => c.rank))].sort((a, b) => b - a);
+      
+      // Check for A-5-4-3-2 (low straight)
+      if (uniqueRanks.includes(14) && uniqueRanks.includes(5) && 
+          uniqueRanks.includes(4) && uniqueRanks.includes(3) && 
+          uniqueRanks.includes(2)) {
+        return {
+          found: true,
+          details: [
+            { group: "highCard", rank: 5 }  // 5 is high card in this case
+          ]
+        };
+      }
+      
+      // Check for regular straights
+      for (let i = 0; i < uniqueRanks.length - 4; i++) {
+        if (uniqueRanks[i] - uniqueRanks[i + 4] === 4) {
+          return {
+            found: true,
+            details: [
+              { group: "highCard", rank: uniqueRanks[i] }
+            ]
+          };
+        }
+      }
+      
+      return { found: false };
+    }
+
+    // Compare kickers for hands of equal rank
+    function compareKickers(detailsA, detailsB) {
+      // Compare each detail in order (primary groups first, then kickers)
+      for (let i = 0; i < Math.min(detailsA.length, detailsB.length); i++) {
+        if (detailsA[i].rank !== detailsB[i].rank) {
+          return detailsA[i].rank - detailsB[i].rank;
+        }
+      }
+      return 0;
+    }
+
+    // Calculate the winning percentage of current hand
+    function calculateWinPercentage(currentCards) {
+      // This is a simplified calculation
+      // For a complete solution, you'd need to simulate many random hands
+      
+      if (currentCards.length < 2) return 0;
+      
+      const holeCards = currentCards.slice(0, 2);
+      
+      // Factors affecting win percentage
+      let winPercentage = 0;
+      
+      // Pair in hole cards
+      if (holeCards[0].rank === holeCards[1].rank) {
+        // Higher pairs are worth more
+        winPercentage = 50 + (holeCards[0].rank - 2) * 2;
+        if (winPercentage > 85) winPercentage = 85; // Cap at 85%
+      } 
+      // High cards
+      else {
+        // Count cards above 10
+        const highCards = holeCards.filter(c => c.rank >= 10).length;
+        const hasAce = holeCards.some(c => c.rank === 14);
+        
+        // Base percentage on high cards
+        if (hasAce) {
+          winPercentage = 30 + (holeCards[0].rank + holeCards[1].rank - 15) * 1.2;
+        } else if (highCards === 2) {
+          winPercentage = 25 + (holeCards[0].rank + holeCards[1].rank - 20) * 1.1;
+        } else if (highCards === 1) {
+          winPercentage = 20 + (holeCards[0].rank + holeCards[1].rank - 12) * 0.8;
+        } else {
+          winPercentage = 15 + (holeCards[0].rank + holeCards[1].rank - 4) * 0.6;
+        }
+        
+        // Suited bonus
+        if (holeCards[0].suit === holeCards[1].suit) {
+          winPercentage += 5;
+        }
+        
+        // Connected cards bonus (within 3 ranks)
+        const rankDiff = Math.abs(holeCards[0].rank - holeCards[1].rank);
+        if (rankDiff <= 3) {
+          winPercentage += (4 - rankDiff) * 2;
+        }
+      }
+      
+      // Adjust based on community cards if available
+      if (currentCards.length > 2) {
+        const communityCards = currentCards.slice(2);
+        const handEval = evaluateHand(currentCards);
+        
+        // Adjust based on made hands
+        switch (handEval.type) {
+          case 'Royal Flush': 
+          case 'Straight Flush': 
+            winPercentage = 99; 
+            break;
+          case 'Four of a Kind': 
+            winPercentage = 98; 
+            break;
+          case 'Full House': 
+            winPercentage = 96; 
+            break;
+          case 'Flush': 
+            winPercentage = 92; 
+            break;
+          case 'Straight': 
+            winPercentage = 90; 
+            break;
+          case 'Three of a Kind': 
+            winPercentage = 85; 
+            break;
+          case 'Two Pair': 
+            winPercentage = 75; 
+            break;
+          case 'One Pair': 
+            winPercentage = 60; 
+            break;
+        }
+        
+        // If we have community cards but no strong hand, reduce win percentage
+        if (handEval.rank <= 1 && communityCards.length >= 3) {
+          winPercentage *= 0.7;
+        }
+      }
+      
+      // Ensure percentage is within bounds
+      return Math.min(Math.max(winPercentage, 0), 100);
+    }
+
+    // Get a descriptive strength rating
+    function getHandStrengthDescription(evaluation, cards) {
+      const winPercentage = calculateWinPercentage(cards);
+      
+      if (winPercentage >= 95) return 'Monster hand';
+      if (winPercentage >= 85) return 'Very strong hand';
+      if (winPercentage >= 70) return 'Strong hand';
+      if (winPercentage >= 50) return 'Above average hand';
+      if (winPercentage >= 30) return 'Average hand';
+      if (winPercentage >= 15) return 'Below average hand';
+      return 'Weak hand';
+    }
+
+    // Get more detailed hand advice
+    function getDetailedHandAdvice(handEval, position, stage, cards) {
+      if (!handEval) return "Please select cards for evaluation.";
+      
+      // Calculate win percentage
+      const winPercentage = calculateWinPercentage(cards);
+      
+      const strengthDescription = getHandStrengthDescription(handEval, cards);
+      
+      // Position-based considerations
+      const earlyPositions = ['utg', 'utg1', 'mp'];
+      const middlePositions = ['hj', 'co'];
+      const latePositions = ['btn', 'sb', 'bb'];
+      
+      let positionType = 'middle';
+      if (earlyPositions.includes(position)) positionType = 'early';
+      if (latePositions.includes(position)) positionType = 'late';
+      
+      let advice = `<div class="advice-content">
+        <p>You have <span class="hand-strength">${handEval.type}</span>, which is a ${strengthDescription}.</p>
+        <p>Estimated winning chance: <span class="win-percentage">${Math.round(winPercentage)}%</span></p>`;
+      
+      // Different advice based on hand strength and position
+      if (winPercentage >= 85) {
+        advice += `<p><strong>Recommendation:</strong> `;
+        if (stage === 'flop') {
+          advice += `Bet for value, around ${positionType === 'early' ? '1/2' : '2/3'} of the pot. Consider slow-playing if the board is not draw-heavy.</p>`;
+        } else if (stage === 'turn') {
+          advice += `Continue betting for value, around ${positionType === 'early' ? '2/3' : '3/4'} of the pot. Look to get all chips in by the river.</p>`;
+        } else { // river
+          advice += `Make a value bet sized to get called by weaker hands, typically 1/2 to full pot.</p>`;
+        }
+      } 
+      else if (winPercentage >= 70) {
+        advice += `<p><strong>Recommendation:</strong> `;
+        if (positionType === 'early') {
+          advice += `Bet for value, around 1/2 to 2/3 of the pot. Be ready to reevaluate if faced with aggression.</p>`;
+        } else {
+          advice += `Bet for value, around 2/3 of the pot. Consider check-raising if out of position to build the pot.</p>`;
+        }
+      }
+      else if (winPercentage >= 50) {
+        advice += `<p><strong>Recommendation:</strong> `;
+        if (positionType === 'early') {
+          advice += `Make a value bet of about 1/2 pot, but be cautious of strong responses.</p>`;
+        } else if (positionType === 'middle') {
+          advice += `Value bet about 1/2 to 2/3 pot.</p>`;
+        } else {
+          advice += `Value bet about 2/3 pot, or consider a check-raise if out of position.</p>`;
+        }
+      }
+      else if (winPercentage >= 30) {
+        advice += `<p><strong>Recommendation:</strong> `;
+        if (positionType === 'early') {
+          advice += `Consider checking to control the pot size. Fold to significant pressure unless you have good implied odds.</p>`;
+        } else if (positionType === 'middle') {
+          advice += `Small bet of about 1/3 pot as a probe, or check-call if out of position.</p>`;
+        } else {
+          advice += `Bet about 1/2 pot if checked to you, otherwise consider a check-call to keep the pot small.</p>`;
+        }
+      }
+      else { // weak hand
+        advice += `<p><strong>Recommendation:</strong> `;
+        if (positionType === 'late') {
+          advice += `Consider a bluff if checked to you, otherwise check and evaluate turn card.</p>`;
+        } else {
+          advice += `Check, and consider folding to significant bets unless you have a strong draw.</p>`;
+        }
+      }
+      
+      advice += `</div>`;
+      return advice;
+    }
+    
+    // Get pre-flop advice
+    function getPreFlopAdvice(cards, position) {
+      if (cards.length < 2) return "Please select both hole cards.";
+      
+      // Sort cards by rank (high to low)
+      cards.sort((a, b) => b.rank - a.rank);
+      
+      const isPair = cards[0].rank === cards[1].rank;
+      const isSuited = cards[0].suit === cards[1].suit;
+      const isConnector = Math.abs(cards[0].rank - cards[1].rank) <= 2;
+      const highCard = cards[0].rank;
+      const lowCard = cards[1].rank;
+      
+      // Get hand rank (e.g., "AA", "KQs")
+      const handRank = getPreFlopHandRank(cards);
+      
+      // Calculate win percentage
+      const winPercentage = calculateWinPercentage(cards);
+      const strengthDesc = getHandStrengthDescription({ type: isPair ? "Pair" : "High Card" }, cards);
+      
+      let advice = `<div class="advice-content">
+        <p>You have <span class="hand-strength">${handRank}</span>, which is a ${strengthDesc}.</p>
+        <p>Estimated winning chance: <span class="win-percentage">${Math.round(winPercentage)}%</span></p>
+        <p><strong>Recommendation:</strong> `;
+      
+      // Basic premium hands
+      if (isPair && highCard >= 10) { // JJ, QQ, KK, AA
+        advice += "Premium pair. Raise 3-4x BB from any position.</p>";
+      } else if (highCard === 14 && lowCard >= 10) { // AK, AQ, AJ, AT
+        if (isSuited) {
+          advice += "Premium suited Ace. Raise 3x BB from any position.</p>";
+        } else {
+          advice += "Strong Ace. Raise 3x BB from middle to late position, call from early.</p>";
+        }
+      } else {
+        // Position-based advice
+        const earlyPositions = ['utg', 'utg1', 'mp'];
+        const middlePositions = ['hj', 'co'];
+        const latePositions = ['btn', 'sb', 'bb'];
+        
+        let positionType = 'middle';
+        if (earlyPositions.includes(position)) positionType = 'early';
+        if (latePositions.includes(position)) positionType = 'late';
+        
+        // Position-specific advice
+        if (positionType === 'early') {
+          if (isPair && highCard >= 8) {
+            advice += "Raise 3x BB with this medium pair.</p>";
+          } else if (highCard >= 12 && lowCard >= 10) {
+            advice += "Raise 3x BB with these high cards.</p>"; 
+          } else if (highCard === 14 && lowCard >= 8 && isSuited) {
+            advice += "Raise 2.5x BB with this suited Ace.</p>";
+          } else if (highCard >= 10 && isConnector && isSuited) {
+            advice += "Consider raising 2.5x BB with suited connectors.</p>";
+          } else {
+            advice += "This hand is below average strength for early position. Consider folding.</p>";
+          }
+        } else if (positionType === 'middle') {
+          if (isPair && highCard >= 5) {
+            advice += "Raise 3x BB with this pair.</p>";
+          } else if (highCard >= 10 && lowCard >= 8) {
+            advice += "Raise 2.5-3x BB with these high cards.</p>";
+          } else if (highCard === 14 && lowCard >= 2) {
+            advice += "Raise with any Ace from middle position.</p>";
+          } else if (isConnector && isSuited) {
+            advice += "Consider raising 2.5x BB with suited connectors.</p>";
+          } else {
+            advice += "This hand has marginal value in middle position. Consider folding unless the table is passive.</p>";
+          }
+        } else { // Late position
+          if (isPair) {
+            advice += "Raise 2.5-3x BB with any pair from late position.</p>";
+          } else if (highCard >= 10) {
+            advice += "Raise 2.5x BB with any high card from late position.</p>";
+          } else if (isConnector || isSuited) {
+            advice += "Consider raising 2x BB with connectors or suited cards from late position.</p>";
+          } else {
+            advice += "This hand has some playability from late position. Consider limping or making a small raise if no one has entered the pot.</p>";
+          }
+        }
+      }
+      
+      advice += `</div>`;
+      return advice;
+    }
+    
+    // Advice functions
+    function advisePreflop() {
+      const hole = getSelectedCards().slice(0, 2);
+      if (hole.length < 2) {
+        alert('Please select both hole cards');
+        return;
+      }
+      
+      const position = document.getElementById('position').value;
+      const advice = getPreFlopAdvice(hole, position);
+      
+      document.getElementById('advicePre').innerHTML = advice;
+      document.getElementById('flopSection').classList Setup player count (1-12)
+    const numPlayers = document.getElementById('numPlayers');
+    for (let i = 2; i <= 12; i++) {
+      numPlayers.add(new Option(i, i));
+    }
+    // Default to 9 players
+    numPlayers.value = 9;
+
+    // Card generation and management
+    const suits = ['♠','♥','♦','♣'];
+    const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    const deck = [];
+    
+    // Generate deck with proper card values
+    for (let s = 0; s < suits.length; s++) {
+      for (let r = 0; r < ranks.length; r++) {
+        const cardText = ranks[r] + suits[s];
+        const cardValue = (r + 2) + '-' + suits[s]; // 2-A as 2-14 plus suit
+        deck.push({text: cardText, value: cardValue});
+      }
+    }
+    
+    // Track used cards
+    const usedCards = new Set();
+    
+    // Populate all card selectors
+    const cardSelectors = ['hole1', 'hole2', 'flop1', 'flop2', 'flop3', 'turn', 'river'];
+    
+    cardSelectors.forEach(id => {
+      const select = document.getElementById(id);
+      
+      // Add empty option first
+      select.add(new Option('Select a card', ''));
+      
+      // Add all cards
+      deck.forEach(card => {
+        select.add(new Option(card.text, card.value));
+      });
+      
+      // Add change listener to update usedCards set
+      select.addEventListener('change', () => {
+        updateSelectedCards();
+        updatePreFlopStats();
+      });
+    });
+    
+    //
