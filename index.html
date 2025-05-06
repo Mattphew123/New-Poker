@@ -982,5 +982,187 @@
         updatePreFlopStats();
       });
     });
+    // Complete the advisePreflop function that was cut off
+function advisePreflop() {
+  const hole = getSelectedCards().slice(0, 2);
+  if (hole.length < 2) {
+    alert('Please select both hole cards');
+    return;
+  }
+  
+  const position = document.getElementById('position').value;
+  const advice = getPreFlopAdvice(hole, position);
+  
+  document.getElementById('advicePre').innerHTML = advice;
+  document.getElementById('flopSection').classList.remove('hidden');
+}
+
+// Add the missing advise functions
+function adviseFlop() {
+  const cards = getSelectedCards().slice(0, 5);
+  if (cards.length < 5) {
+    alert('Please select all flop cards');
+    return;
+  }
+  
+  const position = document.getElementById('position').value;
+  const handEval = evaluateHand(cards);
+  const advice = getDetailedHandAdvice(handEval, position, 'flop', cards);
+  
+  document.getElementById('adviceFlop').innerHTML = advice;
+  document.getElementById('handDetailsFlop').innerHTML = getHandDetailsHTML(handEval);
+  document.getElementById('handDetailsFlop').classList.remove('hidden');
+  document.getElementById('turnSection').classList.remove('hidden');
+}
+
+function adviseTurn() {
+  const cards = getSelectedCards().slice(0, 6);
+  if (cards.length < 6) {
+    alert('Please select the turn card');
+    return;
+  }
+  
+  const position = document.getElementById('position').value;
+  const handEval = evaluateHand(cards);
+  const advice = getDetailedHandAdvice(handEval, position, 'turn', cards);
+  
+  document.getElementById('adviceTurn').innerHTML = advice;
+  document.getElementById('handDetailsTurn').innerHTML = getHandDetailsHTML(handEval);
+  document.getElementById('handDetailsTurn').classList.remove('hidden');
+  document.getElementById('riverSection').classList.remove('hidden');
+}
+
+function adviseRiver() {
+  const cards = getSelectedCards();
+  if (cards.length < 7) {
+    alert('Please select the river card');
+    return;
+  }
+  
+  const position = document.getElementById('position').value;
+  const handEval = evaluateHand(cards);
+  const advice = getDetailedHandAdvice(handEval, position, 'river', cards);
+  
+  document.getElementById('adviceRiver').innerHTML = advice;
+  document.getElementById('handDetailsRiver').innerHTML = getHandDetailsHTML(handEval);
+  document.getElementById('handDetailsRiver').classList.remove('hidden');
+}
+
+// Function to generate HTML for displaying hand details
+function getHandDetailsHTML(handEval) {
+  if (!handEval) return '';
+  
+  let handIcon = '';
+  switch (handEval.type) {
+    case 'Royal Flush': handIcon = '👑'; break;
+    case 'Straight Flush': handIcon = '⚡'; break;
+    case 'Four of a Kind': handIcon = '4️⃣'; break;
+    case 'Full House': handIcon = '🏠'; break;
+    case 'Flush': handIcon = '🌊'; break;
+    case 'Straight': handIcon = '➡️'; break;
+    case 'Three of a Kind': handIcon = '3️⃣'; break;
+    case 'Two Pair': handIcon = '2️⃣2️⃣'; break;
+    case 'One Pair': handIcon = '2️⃣'; break;
+    case 'High Card': handIcon = '🔝'; break;
+    default: handIcon = '❓';
+  }
+  
+  let html = `
+    <div class="hand-details-content">
+      <p><span class="hand-type-icon">${handIcon}</span> <strong>${handEval.type}</strong>: ${handEval.description}</p>
+  `;
+  
+  // Add hand-specific details
+  if (handEval.details && handEval.details.length > 0) {
+    html += '<p><strong>Details:</strong> ';
     
-    //
+    handEval.details.forEach((detail, index) => {
+      const rankSymbol = getRankSymbol(detail.rank);
+      
+      // Format based on the group type
+      switch (detail.group) {
+        case 'quad':
+          html += `Four ${rankSymbol}'s`;
+          break;
+        case 'triplet':
+          html += `Three ${rankSymbol}'s`;
+          break;
+        case 'pair':
+        case 'highPair':
+        case 'lowPair':
+          html += `Pair of ${rankSymbol}'s`;
+          break;
+        case 'highCard':
+          html += `${rankSymbol} high`;
+          break;
+        default:
+          // For kickers
+          if (index > 0) html += ', ';
+          html += `${rankSymbol}`;
+      }
+      
+      if (index < handEval.details.length - 1 && 
+          !detail.group.includes('kicker') && 
+          !handEval.details[index + 1].group.includes('kicker')) {
+        html += ' with ';
+      }
+    });
+    
+    html += '</p>';
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+// Implement the resetGame function
+function resetGame() {
+  // Clear all card selections
+  cardSelectors.forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  
+  // Clear the usedCards set
+  usedCards.clear();
+  
+  // Hide all sections except the preflop
+  document.getElementById('flopSection').classList.add('hidden');
+  document.getElementById('turnSection').classList.add('hidden');
+  document.getElementById('riverSection').classList.add('hidden');
+  
+  // Clear all advice
+  document.getElementById('advicePre').innerHTML = '';
+  document.getElementById('adviceFlop').innerHTML = '';
+  document.getElementById('adviceTurn').innerHTML = '';
+  document.getElementById('adviceRiver').innerHTML = '';
+  
+  // Hide hand details
+  document.getElementById('handDetailsFlop').classList.add('hidden');
+  document.getElementById('handDetailsTurn').classList.add('hidden');
+  document.getElementById('handDetailsRiver').classList.add('hidden');
+  
+  // Clear all stats sections
+  document.getElementById('preStatsSection').innerHTML = '';
+  document.getElementById('flopStatsSection').innerHTML = '';
+  document.getElementById('turnStatsSection').innerHTML = '';
+  document.getElementById('riverStatsSection').innerHTML = '';
+}
+
+// Initialize the game on load
+window.onload = function() {
+  // Setup player count (1-12) - this was cut off in the original
+  const numPlayers = document.getElementById('numPlayers');
+  for (let i = 2; i <= 12; i++) {
+    numPlayers.add(new Option(i, i));
+  }
+  // Default to 9 players
+  numPlayers.value = 9;
+  
+  // Clear any advice sections and stats
+  resetGame();
+  
+  // Add change listener to position and blinds
+  document.getElementById('position').addEventListener('change', updatePreFlopStats);
+  document.getElementById('sb').addEventListener('change', updatePreFlopStats);
+  document.getElementById('bb').addEventListener('change', updatePreFlopStats);
+};
